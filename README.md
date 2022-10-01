@@ -1,6 +1,6 @@
-## Streamlit App (click the button below!)
+### Streamlit App (click the button below!)
 
-[![Streamlit App](https://garrosgong-code-option-trading-an-option-trade-dashboard-qqa711.streamlitapp.com/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://garrosgong-code-option-trading-an-option-trade-dashboard-qqa711.streamlitapp.com/)
 
 # Option-Trading-Analytical-Platform
 
