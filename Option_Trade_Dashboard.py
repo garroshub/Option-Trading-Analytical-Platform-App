@@ -3,7 +3,7 @@
 
 """
 import numpy as np
-import scipy.stats as si
+from scipy import stats as si
 import streamlit as st
 import pandas as pd
 import YFin_API as yf
