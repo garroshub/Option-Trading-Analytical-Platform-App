@@ -1,5 +1,5 @@
 
-Streamlit APp [Dashboard] (https://garrosgong-code-option-trading-an-option-trade-dashboard-qqa711.streamlitapp.com/)
+Streamlit APP [Dashboard] (https://garrosgong-code-option-trading-an-option-trade-dashboard-qqa711.streamlitapp.com/)
 
 # Option-Trading-Analytical-Platform
 
