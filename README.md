@@ -1,6 +1,6 @@
 ### Streamlit App (click the button below!)
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://garroshub-option-trading-analytic-option-trade-dashboard-wd34zi.streamlitapp.com/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://option.streamlit.app/)
 
 # Option-Trading-Analytical-Platform
 
