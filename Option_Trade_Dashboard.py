@@ -91,66 +91,82 @@ colInputs, colOutputs  = st.columns([1,1])
 with colInputs:
     ticker = st.text_input("Ticker:","SPY")
     expDF = yf.grabExpDates(ticker)
-    link = "https://query2.finance.yahoo.com/v7/finance/options/{}?date=".format(ticker)
-    expDF['Link'] = expDF.apply(lambda x: link+str(x['Unix Date']), axis=1)
-    allDates = list(expDF.index.strftime('%Y-%m-%d'))
-    expDate = st.selectbox("Pick expiry date:", allDates, index=0)
+    if not expDF.empty:
+        link = "https://query2.finance.yahoo.com/v7/finance/options/{}?date=".format(ticker)
+        # Create the link column safely
+        expDF = expDF.copy()  # Create a copy to avoid SettingWithCopyWarning
+        expDF['Link'] = expDF['Unix Date'].apply(lambda x: link + str(x))
+        allDates = list(expDF.index.strftime('%Y-%m-%d'))
+        expDate = st.selectbox("Pick expiry date:", allDates, index=0)
+    else:
+        st.error(f"No option data available for {ticker}")
+        expDate = None
 
-    #expDate = st.text_input("Expiry Date:","2022-11-18")
-    #optionType = st.selectbox("Call or Puts:",('calls','puts'),index=0)
-    df_calls = yf.optionChain(ticker=ticker, date=expDate, calls_puts = "calls")
-    df_puts = yf.optionChain(ticker=ticker, date=expDate, calls_puts = "puts")
+    if expDate is not None:
+        df_calls = yf.optionChain(ticker=ticker, date=expDate, calls_puts = "calls")
+        df_puts = yf.optionChain(ticker=ticker, date=expDate, calls_puts = "puts")
 
-    df_calls['Type'] = 'Call'
-    df_puts['Type'] = 'Put'
+        df_calls['Type'] = 'Call'
+        df_puts['Type'] = 'Put'
 
-    df_all = pd.concat([df_calls, df_puts])
-    price = yf.fnYFinJSON(ticker, "regularMarketPrice")
-    ltmDivYield = yf.fnYFinJSON(ticker,'trailingAnnualDividendYield')
-    st.metric("{} Last Price".format(ticker),"{:.2f}".format(price))
-    st.metric("{} LTM Dividend Yield".format(ticker),"{:.2%}".format(ltmDivYield))
+        df_all = pd.concat([df_calls, df_puts])
+        price = yf.fnYFinJSON(ticker, "regularMarketPrice")
+        ltmDivYield = yf.fnYFinJSON(ticker,'trailingAnnualDividendYield')
+        st.metric("{} Last Price".format(ticker),"{:.2f}".format(price))
+        st.metric("{} LTM Dividend Yield".format(ticker),"{:.2%}".format(ltmDivYield))
 
-    url = "https://finance.yahoo.com/quote/{}/options?p={}&date={}"
-    unixTS = pd.Timestamp('{} 00:00:00'.format(expDate)).timestamp()
-    st.write("Yahoo Finance Link: " + url.format(ticker, ticker, int(unixTS)))
+        url = "https://finance.yahoo.com/quote/{}/options?p={}&date={}"
+        unixTS = pd.Timestamp('{} 00:00:00'.format(expDate)).timestamp()
+        st.write("Yahoo Finance Link: " + url.format(ticker, ticker, int(unixTS)))
 
-
-chartTitle = "{} Option Prices at various Strikes (Maturity: {})".format(ticker, expDate)
+chartTitle = "{} Option Prices at various Strikes (Maturity: {})".format(ticker, expDate if expDate else "N/A")
 
 with colOutputs:
-    metricPlot = st.selectbox("Pick a metric to plot:", ('lastPrice','bid','ask','impliedVolatility'), index=0)
-    titleMap = {'lastPrice':'Last Prices',
-                'bid':'Bid Prices',
-                'ask':'Ask Prices',
-                'impliedVolatility':'Implied Volatility'
-                }
-    chartTitleMain = "{} Option {} at various Strikes (Maturity: {})".format(ticker, titleMap[metricPlot], expDate)
-    figAll = px.scatter(df_all, x='strike', y=metricPlot, color='Type', title=chartTitleMain)
-    figAll.add_vline(x=price, annotation_text="Current Price: ${:.2f}".format(price))
-    st.plotly_chart(figAll)
+    if expDate is not None and not df_all.empty:
+        metricPlot = st.selectbox("Pick a metric to plot:", ('lastPrice','bid','ask','impliedVolatility'), index=0)
+        titleMap = {'lastPrice':'Last Prices',
+                    'bid':'Bid Prices',
+                    'ask':'Ask Prices',
+                    'impliedVolatility':'Implied Volatility'
+                    }
+        chartTitleMain = "{} Option {} at various Strikes (Maturity: {})".format(ticker, titleMap[metricPlot], expDate)
+        figAll = px.scatter(df_all, x='strike', y=metricPlot, color='Type', title=chartTitleMain)
+        figAll.add_vline(x=price, annotation_text="Current Price: ${:.2f}".format(price))
+        st.plotly_chart(figAll)
 
-#fig = px.scatter(df, x='strike', y='lastPrice', title="Last Price at various Strikes for {:%Y-%m-%d}".format(expDate))
-figCalls = px.scatter(df_calls, x='strike', y=['lastPrice','bid','ask'], title=chartTitle)
-figCalls.add_vline(x=price, annotation_text="Current Price: ${:.2f}".format(price))
+if expDate is not None:
+    #fig = px.scatter(df, x='strike', y='lastPrice', title="Last Price at various Strikes for {:%Y-%m-%d}".format(expDate))
+    if not df_calls.empty:
+        figCalls = px.scatter(df_calls, x='strike', y=['lastPrice','bid','ask'], title=chartTitle)
+        figCalls.add_vline(x=price, annotation_text="Current Price: ${:.2f}".format(price))
 
-figPuts = px.scatter(df_puts, x='strike', y=['lastPrice','bid','ask'], title=chartTitle)
-figPuts.add_vline(x=price, annotation_text="Current Price: ${:.2f}".format(price))
+    if not df_puts.empty:
+        figPuts = px.scatter(df_puts, x='strike', y=['lastPrice','bid','ask'], title=chartTitle)
+        figPuts.add_vline(x=price, annotation_text="Current Price: ${:.2f}".format(price))
 
-colCalls, colPuts  = st.columns([1,1])
-with colCalls:
-    st.header("Calls")
-    st.plotly_chart(figCalls)
+    colCalls, colPuts  = st.columns([1,1])
+    with colCalls:
+        st.header("Calls")
+        if not df_calls.empty:
+            st.plotly_chart(figCalls)
+        else:
+            st.warning("No call options data available")
 
-with colPuts:
-    st.header("Puts")
-    st.plotly_chart(figPuts)
+    with colPuts:
+        st.header("Puts")
+        if not df_puts.empty:
+            st.plotly_chart(figPuts)
+        else:
+            st.warning("No put options data available")
 
-st.subheader("Calls Option Chain")
-st.write(df_calls)
+    if not df_calls.empty:
+        st.subheader("Calls Option Chain")
+        st.write(df_calls)
 
-st.subheader("Puts Option Chain")
-st.write(df_puts)
+    if not df_puts.empty:
+        st.subheader("Puts Option Chain")
+        st.write(df_puts)
 
-st.write("Expiry Dates")
-
-st.dataframe(expDF)
+if not expDF.empty:
+    st.write("Expiry Dates")
+    st.dataframe(expDF)
